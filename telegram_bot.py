@@ -187,9 +187,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text or ""
     items = core.parse_product_lines(text)
     if not items:
-        await update.message.reply_text(
-            "Send me a product URL to start monitoring, or use /help."
-        )
+        return
     elif len(items) == 1:
         await _add_product(update, items[0][0], items[0][1])
     else:
