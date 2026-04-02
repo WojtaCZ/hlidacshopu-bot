@@ -68,7 +68,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "and I'll monitor it for price drops.\n\n"
         f"Your chat ID: {chat_id}\n\n"
         "Commands:\n"
-        "/add <url> [drop%] - Add a product (e.g. /add <url> 5%)\n"
+        "/add <url> [drop%] - Add product(s), one per line\n"
         "/remove <number> - Remove a product\n"
         "/list - Show monitored products\n"
         "/set <number> <drop%> - Change drop threshold\n"
@@ -85,19 +85,24 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update):
         return
 
-    text = " ".join(context.args) if context.args else ""
-    url = core.looks_like_product_url(text)
-    if not url:
+    text = update.message.text or ""
+    # Strip the /add command itself from the first line
+    text = text.split(None, 1)[1] if len(text.split(None, 1)) > 1 else ""
+
+    items = core.parse_product_lines(text)
+    if not items:
         await update.message.reply_text(
             "Usage: /add <url> [drop%]\n"
-            "Example: /add https://www.alza.cz/product 5%"
+            "Example: /add https://www.alza.cz/product 5%\n\n"
+            "You can add multiple products at once:\n"
+            "/add https://www.alza.cz/product1\n"
+            "https://www.alza.cz/product2 5%\n"
+            "https://www.datart.cz/product3"
         )
         return
 
-    remaining = text.replace(url, "").strip()
-    threshold = core.parse_threshold(remaining) if remaining else None
-
-    await _add_product(update, url, threshold)
+    for url, threshold in items:
+        await _add_product(update, url, threshold)
 
 
 async def _add_product(update: Update, url: str, threshold: float | None = None):
@@ -179,11 +184,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text or ""
-    url = core.looks_like_product_url(text)
-    if url:
-        remaining = text.replace(url, "").strip()
-        threshold = core.parse_threshold(remaining) if remaining else None
-        await _add_product(update, url, threshold)
+    items = core.parse_product_lines(text)
+    if items:
+        for url, threshold in items:
+            await _add_product(update, url, threshold)
     else:
         await update.message.reply_text(
             "Send me a product URL to start monitoring, or use /help."

@@ -97,6 +97,21 @@ def looks_like_product_url(text: str) -> str | None:
     return match.group(0) if match else None
 
 
+def parse_product_lines(text: str) -> list[tuple[str, float | None]]:
+    """Parse multiple lines, each with a URL and optional threshold.
+
+    Returns list of (url, threshold) tuples.
+    """
+    results = []
+    for line in text.splitlines():
+        url = looks_like_product_url(line)
+        if url:
+            remaining = line.replace(url, "").strip()
+            threshold = parse_threshold(remaining) if remaining else None
+            results.append((url, threshold))
+    return results
+
+
 def parse_threshold(text: str) -> float | None:
     """Parse a threshold like '5', '5%', '10.5%' from text."""
     match = re.search(r"(\d+(?:\.\d+)?)\s*%?", text)
