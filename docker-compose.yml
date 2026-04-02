@@ -1,0 +1,15 @@
+services:
+  hlidac-bot:
+    build: .
+    container_name: hlidac-bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - ALLOWED_CHAT_IDS=${ALLOWED_CHAT_IDS:-}
+      - CHECK_INTERVAL=${CHECK_INTERVAL:-3600}
+      - DROP_THRESHOLD=${DROP_THRESHOLD:-0}
+    volumes:
+      - bot-data:/data
+
+volumes:
+  bot-data:
