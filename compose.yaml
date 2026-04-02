@@ -4,8 +4,13 @@ services:
     container_name: hlidac-bot
     restart: unless-stopped
     environment:
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - BOT_PLATFORM=${BOT_PLATFORM:-telegram}
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+      - DISCORD_TOKEN=${DISCORD_TOKEN:-}
       - ALLOWED_CHAT_IDS=${ALLOWED_CHAT_IDS:-}
+      - ALLOWED_USER_IDS=${ALLOWED_USER_IDS:-}
+      - ALLOWED_CHANNEL_IDS=${ALLOWED_CHANNEL_IDS:-}
+      - NOTIFICATION_CHANNEL_ID=${NOTIFICATION_CHANNEL_ID:-}
       - CHECK_INTERVAL=${CHECK_INTERVAL:-3600}
       - DROP_THRESHOLD=${DROP_THRESHOLD:-0}
     volumes:
