@@ -70,6 +70,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Commands:\n"
         "/add <url> [drop%] - Add product(s), one per line\n"
         "/remove <number> - Remove a product\n"
+        "/clear - Remove all products (requires confirmation)\n"
         "/list - Show monitored products\n"
         "/set <number> <drop%> - Change drop threshold\n"
         "/check - Force a price check now\n"
@@ -180,6 +181,46 @@ async def cmd_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No price changes detected.")
 
 
+async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update):
+        return
+
+    chat_id = update.effective_chat.id
+    count = len(core.get_user_products(chat_id))
+    if count == 0:
+        await update.message.reply_text("No products to clear.")
+        return
+
+    context.user_data["pending_clear"] = True
+    await update.message.reply_text(
+        f"This will remove ALL {count} monitored product(s).\n"
+        f"Send /confirm to proceed or /cancel to abort."
+    )
+
+
+async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update):
+        return
+
+    if not context.user_data.get("pending_clear"):
+        await update.message.reply_text("Nothing to confirm.")
+        return
+
+    context.user_data.pop("pending_clear", None)
+    count = core.clear_all_products(update.effective_chat.id)
+    await update.message.reply_text(f"Cleared {count} product(s).")
+
+
+async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update):
+        return
+
+    if context.user_data.pop("pending_clear", None):
+        await update.message.reply_text("Clear cancelled.")
+    else:
+        await update.message.reply_text("Nothing to cancel.")
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle plain messages -- auto-detect URLs and optional threshold."""
     if not is_authorized(update):
@@ -257,6 +298,9 @@ def main():
     app.add_handler(CommandHandler("set", cmd_set))
     app.add_handler(CommandHandler("list", cmd_list))
     app.add_handler(CommandHandler("check", cmd_check))
+    app.add_handler(CommandHandler("clear", cmd_clear))
+    app.add_handler(CommandHandler("confirm", cmd_confirm))
+    app.add_handler(CommandHandler("cancel", cmd_cancel))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     async def post_init(app: Application):

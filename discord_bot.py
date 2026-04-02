@@ -179,6 +179,30 @@ async def cmd_check(interaction: discord.Interaction):
         await interaction.followup.send(f"Check complete. {notifications} notification(s) sent.")
 
 
+@bot.tree.command(name="clear", description="Remove ALL monitored products")
+@app_commands.describe(confirm="Type 'yes' to confirm removal of all products")
+async def cmd_clear(interaction: discord.Interaction, confirm: str = ""):
+    if not is_authorized(interaction):
+        await interaction.response.send_message("You are not authorized.", ephemeral=True)
+        return
+
+    count = len(core.get_user_products(interaction.channel_id))
+    if count == 0:
+        await interaction.response.send_message("No products to clear.")
+        return
+
+    if confirm.lower() != "yes":
+        await interaction.response.send_message(
+            f"This will remove ALL {count} monitored product(s).\n"
+            f"Run `/clear confirm:yes` to proceed.",
+            ephemeral=True,
+        )
+        return
+
+    removed = core.clear_all_products(interaction.channel_id)
+    await interaction.response.send_message(f"Cleared {removed} product(s).")
+
+
 @bot.tree.command(name="help", description="Show available commands")
 async def cmd_help(interaction: discord.Interaction):
     await interaction.response.send_message(
@@ -188,6 +212,7 @@ async def cmd_help(interaction: discord.Interaction):
         "**Commands:**\n"
         "`/add <url> [threshold]` - Add a product\n"
         "`/remove <number>` - Remove a product\n"
+        "`/clear confirm:yes` - Remove all products\n"
         "`/list` - Show monitored products\n"
         "`/set <number> <threshold>` - Change drop threshold\n"
         "`/check` - Force a price check now\n"

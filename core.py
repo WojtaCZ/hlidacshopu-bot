@@ -232,6 +232,17 @@ def remove_product(chat_id: int, index: int) -> str:
     return f"Removed: {removed['name']}"
 
 
+def clear_all_products(chat_id: int) -> int:
+    """Remove all products for a chat. Returns count of removed products."""
+    products = load_products()
+    user_products = [p for p in products if p.get("chat_id") == chat_id]
+    if not user_products:
+        return 0
+    remaining = [p for p in products if p.get("chat_id") != chat_id]
+    save_products(remaining)
+    return len(user_products)
+
+
 def set_threshold(chat_id: int, index: int, threshold: float) -> str:
     """Set threshold for a product by 1-based index. Returns response message."""
     products = load_products()
