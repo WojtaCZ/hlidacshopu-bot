@@ -86,6 +86,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text or ""
+    log.info("/add received: %d chars, %d lines", len(text), text.count("\n") + 1)
     items = core.parse_product_lines(text)
     if not items:
         await update.message.reply_text(

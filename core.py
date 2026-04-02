@@ -99,20 +99,24 @@ def looks_like_product_url(text: str) -> str | None:
 
 
 def parse_product_lines(text: str) -> list[tuple[str, float | None]]:
-    """Parse multiple lines, each with a URL and optional threshold.
+    """Extract all URLs from text with optional per-URL threshold.
 
-    Strips leading command prefixes like /add from each line.
-    Returns list of (url, threshold) tuples.
+    Finds every URL regardless of line boundaries or /command prefixes.
+    A threshold like '5%' right after a URL applies to that URL.
     """
     results = []
-    for line in text.splitlines():
-        # Strip command prefix (e.g. "/add ") from each line
-        line = CMD_PREFIX_PATTERN.sub("", line)
-        url = looks_like_product_url(line)
-        if url:
-            remaining = line.replace(url, "").strip()
-            threshold = parse_threshold(remaining) if remaining else None
-            results.append((url, threshold))
+    for match in URL_PATTERN.finditer(text):
+        url = match.group(0)
+        # Look for threshold in text between this URL and end of line
+        after = text[match.end():]
+        line_rest = after.split("\n")[0].strip()
+        # Remove any command prefix (e.g. "/add") that starts the next entry
+        line_rest = CMD_PREFIX_PATTERN.sub("", line_rest).strip()
+        # Remove any other URLs that might be on the same line
+        line_rest = URL_PATTERN.sub("", line_rest).strip()
+        threshold = parse_threshold(line_rest) if line_rest else None
+        results.append((url, threshold))
+    log.info("Parsed %d URL(s) from message (%d chars)", len(results), len(text))
     return results
 
 
