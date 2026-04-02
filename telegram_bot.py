@@ -101,8 +101,12 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    for url, threshold in items:
-        await _add_product(update, url, threshold)
+    if len(items) == 1:
+        await _add_product(update, items[0][0], items[0][1])
+    else:
+        await update.message.reply_text(f"Processing {len(items)} links...")
+        msg = await core.add_products_batch(items, update.effective_chat.id)
+        await update.message.reply_text(msg)
 
 
 async def _add_product(update: Update, url: str, threshold: float | None = None):
@@ -185,13 +189,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = update.message.text or ""
     items = core.parse_product_lines(text)
-    if items:
-        for url, threshold in items:
-            await _add_product(update, url, threshold)
-    else:
+    if not items:
         await update.message.reply_text(
             "Send me a product URL to start monitoring, or use /help."
         )
+    elif len(items) == 1:
+        await _add_product(update, items[0][0], items[0][1])
+    else:
+        await update.message.reply_text(f"Processing {len(items)} links...")
+        msg = await core.add_products_batch(items, update.effective_chat.id)
+        await update.message.reply_text(msg)
 
 
 # ---------------------------------------------------------------------------

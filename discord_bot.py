@@ -208,13 +208,14 @@ async def on_message(message: discord.Message):
     if not is_message_authorized(message):
         return
 
-    url = core.looks_like_product_url(message.content)
-    if url:
-        remaining = message.content.replace(url, "").strip()
-        threshold = core.parse_threshold(remaining) if remaining else None
-
+    items = core.parse_product_lines(message.content)
+    if items:
         async with message.channel.typing():
-            msg, _ = await core.add_product(url, message.channel.id, threshold)
+            if len(items) == 1:
+                url, threshold = items[0]
+                msg, _ = await core.add_product(url, message.channel.id, threshold)
+            else:
+                msg = await core.add_products_batch(items, message.channel.id)
         await message.reply(msg)
 
     await bot.process_commands(message)

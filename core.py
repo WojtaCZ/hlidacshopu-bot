@@ -178,6 +178,37 @@ async def add_product(
     return msg, product
 
 
+async def add_products_batch(
+    items: list[tuple[str, float | None]], chat_id: int,
+) -> str:
+    """Add multiple products, continuing on errors. Returns a summary message."""
+    added = []
+    failed = []
+    for url, threshold in items:
+        try:
+            msg, product = await add_product(url, chat_id, threshold)
+            if product is not None:
+                added.append(product["name"])
+            else:
+                failed.append((url, msg))
+        except Exception as e:
+            log.error("Error adding %s: %s", url, e)
+            failed.append((url, str(e)))
+
+    parts = []
+    if added:
+        parts.append(f"Added {len(added)} product(s):")
+        for name in added:
+            parts.append(f"  + {name}")
+    if failed:
+        parts.append(f"\nFailed {len(failed)} link(s):")
+        for url, reason in failed:
+            parts.append(f"  - {url}\n    {reason}")
+    if not added and not failed:
+        parts.append("No products to add.")
+    return "\n".join(parts)
+
+
 def remove_product(chat_id: int, index: int) -> str:
     """Remove a product by 1-based index. Returns response message."""
     products = load_products()
