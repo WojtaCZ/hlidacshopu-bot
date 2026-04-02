@@ -86,9 +86,6 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = update.message.text or ""
-    # Strip the /add command itself from the first line
-    text = text.split(None, 1)[1] if len(text.split(None, 1)) > 1 else ""
-
     items = core.parse_product_lines(text)
     if not items:
         await update.message.reply_text(

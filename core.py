@@ -90,6 +90,7 @@ def extract_all_time_low(data: dict) -> float | None:
 # ---------------------------------------------------------------------------
 
 URL_PATTERN = re.compile(r"https?://[^\s]+")
+CMD_PREFIX_PATTERN = re.compile(r"^\s*/\w+\s*")
 
 
 def looks_like_product_url(text: str) -> str | None:
@@ -100,10 +101,13 @@ def looks_like_product_url(text: str) -> str | None:
 def parse_product_lines(text: str) -> list[tuple[str, float | None]]:
     """Parse multiple lines, each with a URL and optional threshold.
 
+    Strips leading command prefixes like /add from each line.
     Returns list of (url, threshold) tuples.
     """
     results = []
     for line in text.splitlines():
+        # Strip command prefix (e.g. "/add ") from each line
+        line = CMD_PREFIX_PATTERN.sub("", line)
         url = looks_like_product_url(line)
         if url:
             remaining = line.replace(url, "").strip()
