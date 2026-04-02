@@ -1,0 +1,10 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data
+      - ./core.py:/app/core.py:ro
+      - ./telegram_bot.py:/app/telegram_bot.py:ro
+      - ./discord_bot.py:/app/discord_bot.py:ro
