@@ -104,8 +104,9 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await _add_product(update, items[0][0], items[0][1])
     else:
         await update.message.reply_text(f"Processing {len(items)} links...")
-        msg = await core.add_products_batch(items, update.effective_chat.id)
-        await update.message.reply_text(msg)
+        msgs = await core.add_products_batch(items, update.effective_chat.id)
+        for msg in msgs:
+            await update.message.reply_text(msg)
 
 
 async def _add_product(update: Update, url: str, threshold: float | None = None):
@@ -161,8 +162,9 @@ async def cmd_set(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update):
         return
-    msg = core.format_product_list(update.effective_chat.id)
-    await update.message.reply_text(msg)
+    msgs = core.format_product_list(update.effective_chat.id)
+    for msg in msgs:
+        await update.message.reply_text(msg)
 
 
 async def cmd_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -234,8 +236,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await _add_product(update, items[0][0], items[0][1])
     else:
         await update.message.reply_text(f"Processing {len(items)} links...")
-        msg = await core.add_products_batch(items, update.effective_chat.id)
-        await update.message.reply_text(msg)
+        msgs = await core.add_products_batch(items, update.effective_chat.id)
+        for msg in msgs:
+            await update.message.reply_text(msg)
 
 
 # ---------------------------------------------------------------------------

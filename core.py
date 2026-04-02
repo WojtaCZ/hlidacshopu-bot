@@ -132,6 +132,32 @@ def get_user_products(chat_id: int) -> list[dict]:
     return [p for p in load_products() if p.get("chat_id") == chat_id]
 
 
+# Telegram limit 4096, Discord limit 2000 — use the smaller one as default.
+MAX_MESSAGE_LEN = 2000
+
+
+def _split_messages(
+    header: str, entries: list[str], max_len: int = MAX_MESSAGE_LEN,
+) -> list[str]:
+    """Split *entries* into message chunks that each fit within *max_len*.
+
+    Each chunk is prefixed with *header* (only the first gets it).
+    Entries are joined by ``\\n``; an entry is never broken mid-way.
+    """
+    chunks: list[str] = []
+    current = header
+    for entry in entries:
+        candidate = f"{current}\n{entry}" if current else entry
+        if len(candidate) > max_len and current:
+            chunks.append(current)
+            current = entry
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return chunks or [header or "(empty)"]
+
+
 # ---------------------------------------------------------------------------
 # Product management
 # ---------------------------------------------------------------------------
@@ -188,8 +214,8 @@ async def add_product(
 
 async def add_products_batch(
     items: list[tuple[str, float | None]], chat_id: int,
-) -> str:
-    """Add multiple products, continuing on errors. Returns a summary message."""
+) -> list[str]:
+    """Add multiple products, continuing on errors. Returns message chunks."""
     added = []
     failed = []
     for url, threshold in items:
@@ -203,18 +229,19 @@ async def add_products_batch(
             log.error("Error adding %s: %s", url, e)
             failed.append((url, str(e)))
 
-    parts = []
-    if added:
-        parts.append(f"Added {len(added)} product(s):")
-        for name in added:
-            parts.append(f"  + {name}")
-    if failed:
-        parts.append(f"\nFailed {len(failed)} link(s):")
-        for url, reason in failed:
-            parts.append(f"  - {url}\n    {reason}")
     if not added and not failed:
-        parts.append("No products to add.")
-    return "\n".join(parts)
+        return ["No products to add."]
+
+    entries = []
+    if added:
+        entries.append(f"Added {len(added)} product(s):")
+        for name in added:
+            entries.append(f"  + {name}")
+    if failed:
+        entries.append(f"Failed {len(failed)} link(s):")
+        for url, reason in failed:
+            entries.append(f"  - {url}\n    {reason}")
+    return _split_messages("", entries)
 
 
 def remove_product(chat_id: int, index: int) -> str:
@@ -258,24 +285,24 @@ def set_threshold(chat_id: int, index: int, threshold: float) -> str:
     return f"Updated: {target['name']}\nNew drop threshold: {threshold:.1f}%"
 
 
-def format_product_list(chat_id: int) -> str:
-    """Format the product list for a user."""
+def format_product_list(chat_id: int) -> list[str]:
+    """Format the product list for a user, split into message-safe chunks."""
     user_products = get_user_products(chat_id)
     if not user_products:
-        return "No products being monitored. Send me a link to add one!"
+        return ["No products being monitored. Send me a link to add one!"]
 
-    lines = ["Monitored products:\n"]
+    entries = []
     for i, p in enumerate(user_products, 1):
         price = f"{p['last_price']:.0f} CZK" if p.get("last_price") else "N/A"
         low = f"{p['all_time_low']:.0f} CZK" if p.get("all_time_low") else "N/A"
         threshold = p.get("drop_threshold", DEFAULT_DROP_THRESHOLD)
         thr_str = f"{threshold:.1f}%" if threshold > 0 else "any"
-        lines.append(
+        entries.append(
             f"{i}. {p['name']}\n"
             f"   Price: {price} | Low: {low} | Alert: {thr_str}\n"
-            f"   {p['url']}\n"
+            f"   {p['url']}"
         )
-    return "\n".join(lines)
+    return _split_messages("Monitored products:\n\n", entries)
 
 
 # ---------------------------------------------------------------------------

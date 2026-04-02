@@ -161,8 +161,10 @@ async def cmd_list(interaction: discord.Interaction):
         await interaction.response.send_message("You are not authorized.", ephemeral=True)
         return
 
-    msg = core.format_product_list(interaction.channel_id)
-    await interaction.response.send_message(msg)
+    msgs = core.format_product_list(interaction.channel_id)
+    await interaction.response.send_message(msgs[0])
+    for msg in msgs[1:]:
+        await interaction.followup.send(msg)
 
 
 @bot.tree.command(name="check", description="Force an immediate price check on all products")
@@ -239,9 +241,11 @@ async def on_message(message: discord.Message):
             if len(items) == 1:
                 url, threshold = items[0]
                 msg, _ = await core.add_product(url, message.channel.id, threshold)
+                await message.reply(msg)
             else:
-                msg = await core.add_products_batch(items, message.channel.id)
-        await message.reply(msg)
+                msgs = await core.add_products_batch(items, message.channel.id)
+                for msg in msgs:
+                    await message.reply(msg)
 
     await bot.process_commands(message)
 
